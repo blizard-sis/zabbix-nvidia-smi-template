@@ -1,0 +1,233 @@
+zabbix_export:
+  version: '5.4'
+  date: '2021-05-05T19:06:39Z'
+  groups:
+    -
+      name: Templates
+  templates:
+    -
+      template: 'Template Nvidia GPUs Performance CALC'
+      name: 'Template Nvidia GPUs Performance CALC'
+      groups:
+        -
+          name: Templates
+      items:
+        -
+          name: 'GPU Count'
+          type: DEPENDENT
+          key: gpu.count
+          delay: '0'
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - $.length()
+          master_item:
+            key: gpu.discovery
+          tags:
+            -
+              tag: Application
+              value: Nvidia
+        -
+          name: 'GPU TEXT'
+          key: gpu.discovery
+          history: 1h
+          trends: '0'
+          value_type: TEXT
+          preprocessing:
+            -
+              type: CSV_TO_JSON
+              parameters:
+                - ''
+                - ''
+                - '0'
+          tags:
+            -
+              tag: Application
+              value: Nvidia
+      discovery_rules:
+        -
+          name: 'GPU Discovery'
+          type: DEPENDENT
+          key: dep.gpu.discovery
+          delay: '0'
+          item_prototypes:
+            -
+              name: 'GPU {#GPUINDEX} Fan Speed'
+              type: DEPENDENT
+              key: 'gpu.fanspeed[{#GPUINDEX}]'
+              delay: '0'
+              value_type: FLOAT
+              units: '%'
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$[{#GPUINDEX}].2'
+              master_item:
+                key: gpu.discovery
+              tags:
+                -
+                  tag: Application
+                  value: Nvidia
+            -
+              name: 'GPU {#GPUINDEX} Memory Total'
+              type: DEPENDENT
+              key: 'gpu.mem.total[{#GPUINDEX}]'
+              delay: '0'
+              value_type: FLOAT
+              units: MiB
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$[{#GPUINDEX}].7'
+              master_item:
+                key: gpu.discovery
+              tags:
+                -
+                  tag: Application
+                  value: Nvidia
+            -
+              name: 'GPU {#GPUINDEX} Memory Used'
+              type: DEPENDENT
+              key: 'gpu.mem.used[{#GPUINDEX}]'
+              delay: '0'
+              value_type: FLOAT
+              units: MiB
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$[{#GPUINDEX}].6'
+              master_item:
+                key: gpu.discovery
+              tags:
+                -
+                  tag: Application
+                  value: Nvidia
+            -
+              name: 'GPU {#GPUINDEX} Memory Utilization'
+              type: CALCULATED
+              key: 'gpu.mem.util[{#GPUINDEX}]'
+              value_type: FLOAT
+              units: '%'
+              params: '100*last("gpu.mem.used[{#GPUINDEX}]")/last("gpu.mem.total[{#GPUINDEX}]")'
+              tags:
+                -
+                  tag: Application
+                  value: Nvidia
+            -
+              name: 'GPU {#GPUINDEX} Power'
+              type: DEPENDENT
+              key: 'gpu.power[{#GPUINDEX}]'
+              delay: '0'
+              value_type: FLOAT
+              units: W
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$[{#GPUINDEX}].3'
+              master_item:
+                key: gpu.discovery
+              tags:
+                -
+                  tag: Application
+                  value: Nvidia
+            -
+              name: 'GPU {#GPUINDEX} Temperature'
+              type: DEPENDENT
+              key: 'gpu.temp[{#GPUINDEX}]'
+              delay: '0'
+              value_type: FLOAT
+              units: C
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$[{#GPUINDEX}.4'
+              master_item:
+                key: gpu.discovery
+              tags:
+                -
+                  tag: Application
+                  value: Nvidia
+              trigger_prototypes:
+                -
+                  expression: '{last()}>90'
+                  name: 'GPU {#GPUINDEX} Temperature is extremely high'
+                  priority: DISASTER
+                  description: 'A GPU''s temperature is getting extremely high!'
+                  tags:
+                    -
+                      tag: Application
+                      value: Nvidia
+                -
+                  expression: '{last()}>80'
+                  name: 'GPU {#GPUINDEX} Temperature is high'
+                  priority: WARNING
+                  dependencies:
+                    -
+                      name: 'GPU {#GPUINDEX} Temperature is very high'
+                      expression: '{Template Nvidia GPUs Performance CALC:gpu.temp[{#GPUINDEX}].last()}>85'
+                  tags:
+                    -
+                      tag: Application
+                      value: Nvidia
+                -
+                  expression: '{last()}>85'
+                  name: 'GPU {#GPUINDEX} Temperature is very high'
+                  priority: HIGH
+                  dependencies:
+                    -
+                      name: 'GPU {#GPUINDEX} Temperature is extremely high'
+                      expression: '{Template Nvidia GPUs Performance CALC:gpu.temp[{#GPUINDEX}].last()}>90'
+                  tags:
+                    -
+                      tag: Application
+                      value: Nvidia
+            -
+              name: 'GPU {#GPUINDEX} Utilization'
+              type: DEPENDENT
+              key: 'gpu.util[{#GPUINDEX}]'
+              delay: '0'
+              value_type: FLOAT
+              units: '%'
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$[{#GPUINDEX}].5'
+              master_item:
+                key: gpu.discovery
+              tags:
+                -
+                  tag: Application
+                  value: Nvidia
+          graph_prototypes:
+            -
+              name: 'GPU {#GPUINDEX} Utilization'
+              show_work_period: 'NO'
+              show_triggers: 'NO'
+              ymin_type_1: FIXED
+              ymax_type_1: FIXED
+              graph_items:
+                -
+                  sortorder: '1'
+                  color: 199C0D
+                  item:
+                    host: 'Template Nvidia GPUs Performance CALC'
+                    key: 'gpu.util[{#GPUINDEX}]'
+                -
+                  sortorder: '2'
+                  color: F63100
+                  item:
+                    host: 'Template Nvidia GPUs Performance CALC'
+                    key: 'gpu.mem.util[{#GPUINDEX}]'
+          master_item:
+            key: gpu.discovery
+          lld_macro_paths:
+            -
+              lld_macro: '{#GPUINDEX}'
+              path: $.1
